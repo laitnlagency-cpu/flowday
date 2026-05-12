@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0d0a1e">
-<title>FlowDay</title>
+<title>Sonara</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
 <style>
@@ -486,7 +486,7 @@ body{display:flex;justify-content:center;align-items:stretch;}
 
 <!-- AUTH SCREEN -->
 <div id="auth">
-  <div class="auth-logo">FlowDay</div>
+  <div class="auth-logo">Sonara</div>
   <div class="auth-sub" id="a-tagline"></div>
   <div class="lang-row">
     <button class="lang-opt on" id="lang-es" onclick="setLang('es')">🇪🇸 Español</button>
@@ -653,8 +653,8 @@ body{display:flex;justify-content:center;align-items:stretch;}
 /* ════════════════════════════════════════════
    CONFIGURATION
    ════════════════════════════════════════════ */
-const SUPA_URL  = CONFIG.SUPABASE_URL;
-const SUPA_KEY  = CONFIG.SUPABASE_ANON_KEY;
+const SUPA_URL  = 'https://zbiibwkowvahwjmsrjus.supabase.co';
+const SUPA_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpiaWlid2tvd3ZhaHdqbXNyanVzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5MDQyMzMsImV4cCI6MjA5MzQ4MDIzM30.SAKvTVdqJ1o7moxlK5DVZDRzjTh4hLiQQN4uhEsEF_E';
 const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
 
 /* ════════════════════════════════════════════
