@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0d0a1e">
-<title>Sonara</title>
+<title>FlowDay</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
 <style>
@@ -486,7 +486,7 @@ body{display:flex;justify-content:center;align-items:stretch;}
 
 <!-- AUTH SCREEN -->
 <div id="auth">
-  <div class="auth-logo">Sonara</div>
+  <div class="auth-logo">FlowDay</div>
   <div class="auth-sub" id="a-tagline"></div>
   <div class="lang-row">
     <button class="lang-opt on" id="lang-es" onclick="setLang('es')">🇪🇸 Español</button>
@@ -578,7 +578,7 @@ body{display:flex;justify-content:center;align-items:stretch;}
     <div class="hdr">
       <div class="hdr-top">
         <div>
-          <div class="app-name">Sonara</div>
+          <div class="app-name">FlowDay</div>
           <div class="app-sub" id="h-tagline"></div>
           <div class="app-date" id="h-date"></div>
         </div>
@@ -646,12 +646,15 @@ body{display:flex;justify-content:center;align-items:stretch;}
 <!-- SUPABASE SDK -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 
+<!-- CONFIG LOCAL -->
+<script src="config.js"></script>
+
 <script>
 /* ════════════════════════════════════════════
    CONFIGURATION
    ════════════════════════════════════════════ */
-const SUPA_URL  = 'https://zbiibwkowvahwjmsrjus.supabase.co';
-const SUPA_KEY  = 'sb_publisible_thyPsiTsfA4BnyXselKsiA_leGbn2x5';
+const SUPA_URL  = CONFIG.SUPABASE_URL;
+const SUPA_KEY  = CONFIG.SUPABASE_ANON_KEY;
 const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
 
 /* ════════════════════════════════════════════
