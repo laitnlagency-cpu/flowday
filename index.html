@@ -578,7 +578,7 @@ body{display:flex;justify-content:center;align-items:stretch;}
     <div class="hdr">
       <div class="hdr-top">
         <div>
-          <div class="app-name">FlowDay</div>
+          <div class="app-name">Sonara</div>
           <div class="app-sub" id="h-tagline"></div>
           <div class="app-date" id="h-date"></div>
         </div>
@@ -1319,6 +1319,61 @@ function renderSoundsState(){
 /* ════════════════════════════════════════════
    BREATHE
    ════════════════════════════════════════════ */
+// ── BREATH SOUNDS ──
+let breathAudioCtx = null;
+let breathSoundNodes = [];
+
+function stopBreathSound(){
+  breathSoundNodes.forEach(n=>{ try{ n.stop(); }catch(e){} });
+  breathSoundNodes = [];
+}
+
+function playBreathSound(phase, duration){
+  stopBreathSound();
+  if(phase === 'hold') return; // silencio en retención
+  try {
+    if(!breathAudioCtx) breathAudioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    const ctx = breathAudioCtx;
+    const now = ctx.currentTime;
+    const bufSize = Math.floor(ctx.sampleRate * duration);
+    const buffer = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for(let i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
+
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.Q.value = 0.7;
+    // inhala: tono más agudo (como aspirar), exhala: más grave (como soltar)
+    if(phase === 'inhale'){
+      filter.frequency.setValueAtTime(300, now);
+      filter.frequency.linearRampToValueAtTime(900, now + duration);
+    } else {
+      filter.frequency.setValueAtTime(900, now);
+      filter.frequency.linearRampToValueAtTime(250, now + duration);
+    }
+
+    const gain = ctx.createGain();
+    if(phase === 'inhale'){
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.13, now + duration * 0.5);
+      gain.gain.linearRampToValueAtTime(0.07, now + duration);
+    } else {
+      gain.gain.setValueAtTime(0.13, now);
+      gain.gain.linearRampToValueAtTime(0.05, now + duration * 0.7);
+      gain.gain.linearRampToValueAtTime(0, now + duration);
+    }
+
+    source.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+    source.start(now);
+    breathSoundNodes.push(source);
+  } catch(e){}
+}
+
 let breathInterval = null;
 let breathMode = 'normal';
 let breathCycle = 0;
@@ -1388,6 +1443,7 @@ function runBreathPhase(){
   document.getElementById('b-ring-out').style.transform = `scale(${scale})`;
   document.getElementById('b-ring-in').style.transform  = `scale(${scale*.9})`;
 
+  playBreathSound(step.ph, step.dur);
   breathCount = step.dur;
   clearInterval(breathInterval);
   breathInterval = setInterval(()=>{
@@ -1407,6 +1463,7 @@ function runBreathPhase(){
 
 function endBreath(){
   clearInterval(breathInterval);
+  stopBreathSound();
   const tx=t();
   document.getElementById('b-num').textContent='✓';
   document.getElementById('b-lbl').textContent = tx.breathPhases.done;
@@ -1424,6 +1481,7 @@ function endBreath(){
 
 function closeBreath(){
   clearInterval(breathInterval);
+  stopBreathSound();
   document.getElementById('overlay-breath').classList.add('hidden');
 }
 
