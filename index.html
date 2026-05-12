@@ -466,6 +466,64 @@ body{display:flex;justify-content:center;align-items:stretch;}
 
 /* ── SECTION TITLE ── */
 .sec-title{font-size:10px;color:rgba(255,255,255,.2);letter-spacing:2px;text-transform:uppercase;margin-bottom:14px;}
+
+/* ── PAYWALL OVERLAY ── */
+#paywall{
+  position:fixed;inset:0;z-index:200;
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
+  background:rgba(5,4,18,.82);backdrop-filter:blur(12px);
+  padding:0 0 32px;
+}
+#paywall.hidden{display:none;}
+.pw-sheet{
+  width:100%;max-width:430px;
+  background:linear-gradient(160deg,#0e0b28,#1a1040);
+  border:1px solid rgba(167,139,250,.18);
+  border-radius:28px 28px 0 0;
+  padding:32px 28px 24px;
+  display:flex;flex-direction:column;align-items:center;gap:0;
+}
+.pw-icon{font-size:36px;margin-bottom:12px;}
+.pw-title{font-family:'DM Serif Display',serif;font-size:26px;color:#ede8ff;text-align:center;line-height:1.2;}
+.pw-sub{font-size:13px;color:rgba(255,255,255,.35);text-align:center;margin-top:6px;line-height:1.6;}
+.pw-price{
+  margin:20px 0 4px;
+  font-size:40px;font-family:'DM Serif Display',serif;color:#a78bfa;
+}
+.pw-period{font-size:12px;color:rgba(255,255,255,.3);margin-bottom:20px;}
+.pw-perks{width:100%;display:flex;flex-direction:column;gap:10px;margin-bottom:24px;}
+.pw-perk{display:flex;align-items:center;gap:10px;font-size:13px;color:rgba(255,255,255,.7);}
+.pw-perk-icon{width:28px;height:28px;border-radius:8px;background:rgba(167,139,250,.15);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+.pw-btn{
+  width:100%;padding:16px;border-radius:18px;border:none;
+  background:linear-gradient(135deg,#a78bfa,#7c3aed);
+  color:#fff;font-size:16px;font-weight:500;
+  cursor:pointer;font-family:'DM Sans',sans-serif;
+  box-shadow:0 8px 28px rgba(124,58,237,.45);
+}
+.pw-restore{
+  margin-top:12px;font-size:12px;color:rgba(255,255,255,.2);
+  cursor:pointer;text-decoration:underline;background:none;border:none;
+  font-family:'DM Sans',sans-serif;
+}
+.pw-close{
+  position:absolute;top:18px;right:22px;
+  background:rgba(255,255,255,.07);border:none;border-radius:50%;
+  width:30px;height:30px;color:rgba(255,255,255,.3);
+  font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+}
+.pw-sheet{position:relative;}
+
+/* ── LOCK BADGE ON FEATURES ── */
+.snd-btn.locked{opacity:.45;position:relative;}
+.snd-btn.locked::after{content:'🔒';position:absolute;top:4px;right:4px;font-size:9px;}
+.breath-card.locked{opacity:.45;position:relative;}
+.breath-card.locked::after{content:'🔒';position:absolute;top:10px;right:12px;font-size:12px;}
+.upgrade-btn{
+  background:rgba(167,139,250,.15);border:1px solid rgba(167,139,250,.3);
+  color:#a78bfa;border-radius:20px;padding:4px 12px;font-size:11px;
+  cursor:pointer;font-family:'DM Sans',sans-serif;
+}
 </style>
 </head>
 <body>
@@ -482,6 +540,26 @@ body{display:flex;justify-content:center;align-items:stretch;}
     <div class="notif-sub" id="notif-sub"></div>
   </div>
   <span class="notif-action" id="notif-action"></span>
+</div>
+
+<!-- PAYWALL -->
+<div id="paywall" class="hidden">
+  <div class="pw-sheet">
+    <button class="pw-close" onclick="closePaywall()">✕</button>
+    <div class="pw-icon">✦</div>
+    <div class="pw-title">Sonara Premium</div>
+    <div class="pw-sub" id="pw-reason">Desbloquea la experiencia completa</div>
+    <div class="pw-price">$4.99</div>
+    <div class="pw-period" id="pw-period">/ mes · cancela cuando quieras</div>
+    <div class="pw-perks">
+      <div class="pw-perk"><div class="pw-perk-icon">🌧️</div><span id="pw-p1">Todos los sonidos ambientales</span></div>
+      <div class="pw-perk"><div class="pw-perk-icon">🫁</div><span id="pw-p2">Todos los ejercicios de respiración</span></div>
+      <div class="pw-perk"><div class="pw-perk-icon">✅</div><span id="pw-p3">Tareas ilimitadas</span></div>
+      <div class="pw-perk"><div class="pw-perk-icon">🔥</div><span id="pw-p4">Estadísticas y racha completa</span></div>
+    </div>
+    <button class="pw-btn" onclick="goToStripe()" id="pw-cta">Empezar ahora — $4.99/mes</button>
+    <button class="pw-restore" onclick="restorePurchase()" id="pw-restore">Restaurar compra</button>
+  </div>
 </div>
 
 <!-- AUTH SCREEN -->
@@ -822,6 +900,26 @@ let openTimerPicker = null;
 let taskTimers = {}; // taskId -> {remaining, interval}
 let currentUser = null;
 let newTaskType = 'daily';
+let isPremium = false;
+let trialStart = null;
+
+// ── CONFIG MONETIZACIÓN ──
+const STRIPE_LINK    = 'https://buy.stripe.com/REEMPLAZAR_CON_TU_LINK';
+const TRIAL_DAYS     = 5;
+const FREE_SOUNDS    = ['rain'];
+const FREE_BREATH    = ['normal'];
+const FREE_TASK_LIMIT = 5;
+
+function isFullAccess(){
+  if(isPremium) return true;
+  if(!trialStart) return false;
+  return (Date.now() - new Date(trialStart).getTime()) < TRIAL_DAYS * 864e5;
+}
+function trialDaysLeft(){
+  if(!trialStart) return 0;
+  const left = TRIAL_DAYS - (Date.now() - new Date(trialStart).getTime()) / 864e5;
+  return Math.max(0, Math.ceil(left));
+}
 
 /* ════════════════════════════════════════════
    STARS
@@ -890,6 +988,10 @@ async function doRegister(){
   if(!name||!email||pass.length<6) return;
   const {data,error} = await sb.auth.signUp({email,password:pass,options:{data:{display_name:name}}});
   if(error){ alert(error.message); return; }
+  // Inicia trial de 5 días
+  const now = new Date().toISOString();
+  await sb.from('fd_stats').upsert({user_id:data.user.id, trial_start:now, streak:0},{onConflict:'user_id',ignoreDuplicates:true});
+  trialStart = now;
   enterApp(data.user);
 }
 async function doLogin(){
@@ -906,6 +1008,7 @@ function enterApp(user){
   document.getElementById('main').style.display='flex';
   loadUserData();
   renderAll();
+  checkPremium(); // verifica estado premium en Supabase
   checkSchedule();
 }
 
@@ -958,7 +1061,10 @@ function addTask(){
   if(!inp) return;
   const txt = inp.value.trim();
   if(!txt) return;
-  if(catTasks(activeCat).length>=5){ showNotif(t().limit,'',''); return; }
+  if(!isFullAccess() && catTasks(activeCat).length >= FREE_TASK_LIMIT){
+    showPaywall(lang==='es'?'Obtén tareas ilimitadas con Premium':'Get unlimited tasks with Premium');
+    return;
+  }
   const task = {
     id: Date.now().toString(),
     text:txt,cat:activeCat,type:newTaskType,
@@ -1056,6 +1162,58 @@ function updateTimerDisplay(taskId){
    ════════════════════════════════════════════ */
 let expandedTasks = {};
 
+/* ════════════════════════════════════════════
+   PREMIUM / PAYWALL
+   ════════════════════════════════════════════ */
+async function checkPremium(){
+  if(!currentUser) return;
+  try {
+    const {data} = await sb.from('fd_stats').select('is_premium,trial_start').eq('user_id',currentUser.id).single();
+    isPremium  = !!(data && data.is_premium);
+    trialStart = data?.trial_start || null;
+  } catch(e){ isPremium = false; trialStart = null; }
+  renderAll();
+  // Si el trial expiró y no es premium, mostrar paywall al entrar
+  if(trialStart && !isFullAccess() && !isPremium){
+    setTimeout(()=> showPaywall(lang==='es'
+      ? 'Tu prueba gratuita ha terminado'
+      : 'Your free trial has ended'), 1200);
+  }
+}
+
+function showPaywall(reason){
+  const tx = t();
+  const isES = lang === 'es';
+  document.getElementById('pw-reason').textContent = reason || (isES ? 'Desbloquea la experiencia completa' : 'Unlock the full experience');
+  document.getElementById('pw-period').textContent = isES ? '/ mes · cancela cuando quieras' : '/ month · cancel anytime';
+  document.getElementById('pw-p1').textContent = isES ? 'Todos los sonidos ambientales' : 'All ambient sounds';
+  document.getElementById('pw-p2').textContent = isES ? 'Todos los ejercicios de respiración' : 'All breathing exercises';
+  document.getElementById('pw-p3').textContent = isES ? 'Tareas ilimitadas' : 'Unlimited tasks';
+  document.getElementById('pw-p4').textContent = isES ? 'Estadísticas y racha completa' : 'Full stats & streak';
+  document.getElementById('pw-cta').textContent = isES ? 'Empezar ahora — $4.99/mes' : 'Start now — $4.99/mo';
+  document.getElementById('pw-restore').textContent = isES ? 'Restaurar compra' : 'Restore purchase';
+  document.getElementById('paywall').classList.remove('hidden');
+}
+
+function closePaywall(){
+  document.getElementById('paywall').classList.add('hidden');
+}
+
+function goToStripe(){
+  window.open(STRIPE_LINK + (currentUser ? '?prefilled_email=' + encodeURIComponent(currentUser.email) : ''), '_blank');
+}
+
+async function restorePurchase(){
+  await checkPremium();
+  if(isPremium){
+    const isES = lang==='es';
+    showNotif(isES?'✦ Premium activo':'✦ Premium active', isES?'Bienvenido de vuelta':'Welcome back','');
+    closePaywall();
+  } else {
+    showNotif(lang==='es'?'Sin compra activa':'No active purchase','','');
+  }
+}
+
 function renderAll(){
   renderAuthText();
   renderHeader();
@@ -1076,7 +1234,21 @@ function renderHeader(){
   document.getElementById('h-tagline').textContent = tx.tagline;
   document.getElementById('h-date').textContent = d.toLocaleDateString(lang==='es'?'es-ES':'en-GB',opts).toUpperCase();
   document.getElementById('h-lang-btn').textContent = lang==='es'?'EN':'ES';
-  document.getElementById('h-plan-badge').textContent = '✦ '+tx.planTrial;
+  const planBadge = document.getElementById('h-plan-badge');
+  planBadge.onclick = ()=>showPaywall();
+  planBadge.style.cursor = 'pointer';
+  if(isPremium){
+    planBadge.textContent = '✦ Premium';
+    planBadge.onclick = null;
+    planBadge.style.cursor = 'default';
+  } else if(trialStart && isFullAccess()){
+    const d = trialDaysLeft();
+    planBadge.textContent = lang==='es'
+      ? `⏱ ${d} día${d!==1?'s':''} gratis`
+      : `⏱ ${d} free day${d!==1?'s':''}`;
+  } else {
+    planBadge.textContent = '✦ ' + tx.planTrial;
+  }
   const sdays = streak===1 ? tx.streakDay : tx.streakDays;
   document.getElementById('h-streak-badge').textContent = `🔥 ${streak} ${sdays}`;
   // Quote of the day (based on day of year)
@@ -1300,12 +1472,15 @@ function renderSounds(){
   document.getElementById('snd-title').textContent = tx.soundsTitle;
   document.getElementById('vol-lbl').textContent = tx.volLabel;
   const grid = document.getElementById('snd-grid');
-  grid.innerHTML = tx.sounds.map(s=>`
-    <button class="snd-btn ${soundNodes[s.id]?'on':''}" id="snd-${s.id}" onclick="playSound('${s.id}')">
+  grid.innerHTML = tx.sounds.map(s=>{
+    const locked = !isFullAccess() && !FREE_SOUNDS.includes(s.id);
+    const cls = `snd-btn${soundNodes[s.id]?' on':''}${locked?' locked':''}`;
+    const action = locked ? `showPaywall(${JSON.stringify(lang==='es'?'Desbloquea todos los sonidos':'Unlock all sounds')})` : `playSound('${s.id}')`;
+    return `<button class="${cls}" id="snd-${s.id}" onclick="${action}">
       <span class="snd-icon">${s.icon}</span>
       ${s.label}
-    </button>
-  `).join('');
+    </button>`;
+  }).join('');
 }
 
 function renderSoundsState(){
@@ -1394,9 +1569,10 @@ const TOTAL_CYCLES = 5;
 
 function renderBreathe(){
   const tx=t();
-  document.getElementById('breath-list').innerHTML = tx.breathModes.map(m=>`
-    <div class="breath-card" onclick="startBreath('${m.id}',false)"
-      style="background:${m.bg}">
+  document.getElementById('breath-list').innerHTML = tx.breathModes.map(m=>{
+    const locked = !isFullAccess() && !FREE_BREATH.includes(m.id);
+    const action = locked ? `showPaywall(${JSON.stringify(lang==='es'?'Desbloquea todos los ejercicios':'Unlock all exercises')})` : `startBreath('${m.id}',false)`;
+    return `<div class="breath-card${locked?' locked':''}" onclick="${action}" style="background:${m.bg}">
       <div class="breath-icon-wrap" style="background:${m.bg}">
         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="${m.tagColor}" stroke-width="1.4">
           <circle cx="12" cy="12" r="9" stroke-dasharray="3 2"/>
@@ -1408,8 +1584,8 @@ function renderBreathe(){
         <div class="breath-desc">${m.desc}</div>
         <span class="breath-tag" style="background:${m.tagColor}22;color:${m.tagColor}">${m.tag}</span>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }
 
 function startBreath(mode, fromAlert){

@@ -22,12 +22,19 @@ create table if not exists fd_schedule (
   config   jsonb not null default '{}'
 );
 
--- 3. ESTADÍSTICAS (racha)
+-- 3. ESTADÍSTICAS (racha + premium)
 create table if not exists fd_stats (
-  user_id  uuid primary key references auth.users(id) on delete cascade,
-  streak   integer not null default 0,
-  last_day date
+  user_id    uuid primary key references auth.users(id) on delete cascade,
+  streak     integer not null default 0,
+  last_day   text,
+  is_premium boolean not null default false,
+  premium_since timestamptz
 );
+
+-- Si la tabla ya existe, agregar columnas premium:
+alter table fd_stats add column if not exists is_premium boolean not null default false;
+alter table fd_stats add column if not exists premium_since timestamptz;
+alter table fd_stats add column if not exists trial_start timestamptz;
 
 -- 4. SEGURIDAD: solo cada usuario ve sus datos
 alter table fd_tasks    enable row level security;
